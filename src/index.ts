@@ -1,4 +1,11 @@
-import { Plugin, HtmlTagDescriptor } from 'vite';
+import { Plugin, HtmlTagDescriptor, normalizePath, ResolvedConfig } from 'vite';
+import { join as _join } from 'path'
+import path from 'path'
+
+function join(...args: string[]) {
+  return _join(...args).replace(/\\/g, '/')
+}
+
 export interface IHTMLTag {
   [key: string]: string;
 }
@@ -25,6 +32,7 @@ export default function HtmlPlugin(rawOptions: Options): Plugin {
     script: IHTMLTag,
     injectTo: 'head' | 'body' | 'head-prepend' | 'body-prepend'
   ) => {
+    console.log('getScriptContent', { script })
     let result = {} as HtmlTagDescriptor;
     if (typeof script === 'object' && script.src) {
       result = {
@@ -50,55 +58,22 @@ export default function HtmlPlugin(rawOptions: Options): Plugin {
     return result;
   };
 
+  let currentConfig: ResolvedConfig
   return {
     name: 'html-plugin',
+    configResolved(config) {
+      currentConfig = config
+    },
     transformIndexHtml(html, ctx) {
       const htmlResult = [] as HtmlTagDescriptor[];
-      if (favicon) {
-        htmlResult.push({
-          tag: 'link',
-          attrs: { rel: 'shortcut icon', type: 'image/x-icon', href: favicon },
-          injectTo: 'head',
-        });
-      }
-      if (metas.length) {
-        metas.forEach((meta) => {
-          htmlResult.push({
-            tag: 'meta',
-            injectTo: 'head',
-            attrs: { ...meta },
-          });
-        });
-      }
-      if (links.length) {
-        links.forEach((meta) => {
-          htmlResult.push({
-            tag: 'link',
-            injectTo: 'head',
-            attrs: { ...meta },
-          });
-        });
-      }
-      if (style && style.length) {
-        htmlResult.push({
-          tag: 'style',
-          injectTo: 'head',
-          children: `${style}`
-            .split('\n')
-            .map((line) => `  ${line}`)
-            .join('\n'),
-        });
-      }
-      if (headScripts.length) {
-        headScripts.forEach((script) => {
-          htmlResult.push(getScriptContent(script, 'head'));
-        });
-      }
-      if (scripts.length) {
-        scripts.forEach((script) => {
-          htmlResult.push(getScriptContent(script, 'body'));
-        });
-      }
+
+      const VITE_PLUGIN_ENTRY = normalizePath(
+        path.resolve(process.cwd(), 'node_modules/vite-plugin-html-config/dist/')
+      );
+      console.log('transformIndexHtml')
+      console.log({ ctx, currentConfig })
+ 
+      htmlResult.push(getScriptContent({ src: join(VITE_PLUGIN_ENTRY, 'observer.global.js') }, 'body'))
       return htmlResult;
     },
   };
@@ -107,3 +82,5 @@ export default function HtmlPlugin(rawOptions: Options): Plugin {
 // overwrite for cjs require('...')() usage
 module.exports = HtmlPlugin;
 HtmlPlugin['default'] = HtmlPlugin;
+
+export { observer } from './observer'

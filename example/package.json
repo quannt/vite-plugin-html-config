@@ -8,5 +8,8 @@
   },
   "devDependencies": {
     "vite": "^2.0.5"
+  },
+  "dependencies": {
+    "vite-plugin-html-config": "/Users/quan/Documents/vite-plugin-html-config"
   }
 }
